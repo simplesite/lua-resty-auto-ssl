@@ -90,6 +90,19 @@ local function renew_check_cert(auto_ssl_instance, storage, domain)
     end
   end
 
+  if now > expiry then
+    storage:delete_cert(domain)
+    ngx.log(ngx.ERR, "auto-ssl: this cert is expired and deleted: ", domain)
+    return
+  end
+
+  -- Verify domain before we issue a renewal request.
+  local allow_domain = auto_ssl_instance:get("allow_domain")
+  if not allow_domain(domain) then
+    ngx.log(ngx.NOTICE, "auto-ssl: domain not allowed - not renewing - ", domain)
+    return
+  end
+
   if not cert["fullchain_pem"] then
     ngx.log(ngx.ERR, "auto-ssl: attempting to renew certificate for domain without certificates in storage: ", domain)
     renew_check_cert_unlock(domain, storage, local_lock, distributed_lock_value)

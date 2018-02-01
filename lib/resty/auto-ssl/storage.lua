@@ -35,6 +35,10 @@ function _M.get_cert(self, domain)
   return data
 end
 
+function _M.delete_cert(self, domain)
+  return self.adapter:delete(domain .. ":latest")
+end
+
 function _M.set_cert(self, domain, fullchain_pem, privkey_pem, cert_pem, expiry)
   -- Store the public certificate and private key as a single JSON string.
   --
