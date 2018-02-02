@@ -19,6 +19,10 @@ function _M.delete_challenge(self, domain, path)
   return self.storage_adapter:delete(domain .. ":challenge:" .. path)
 end
 
+function _M.delete_cert(self, domain)
+  return self.storage_adapter:delete(domain .. ":latest")
+end
+
 function _M.get_cert(self, domain)
   local json, err = self.storage_adapter:get(domain .. ":latest")
   if err then
