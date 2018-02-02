@@ -19,10 +19,6 @@ function _M.delete_challenge(self, domain, path)
   return self.storage_adapter:delete(domain .. ":challenge:" .. path)
 end
 
-function _M.delete_cert(self, domain)
-  return self.storage_adapter:delete(domain .. ":latest")
-end
-
 function _M.get_cert(self, domain)
   local json, err = self.storage_adapter:get(domain .. ":latest")
   if err then
@@ -40,7 +36,7 @@ function _M.get_cert(self, domain)
 end
 
 function _M.delete_cert(self, domain)
-  return self.adapter:delete(domain .. ":latest")
+  return self.storage_adapter:delete(domain .. ":latest")
 end
 
 function _M.set_cert(self, domain, fullchain_pem, privkey_pem, cert_pem, expiry)
