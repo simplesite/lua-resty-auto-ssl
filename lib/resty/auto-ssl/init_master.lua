@@ -65,7 +65,7 @@ local function generate_config(auto_ssl_instance)
     ngx.log(ngx.ERR, "auto-ssl: failed to open letsencrypt config file")
   else
     file:write('# This file will be overwritten by resty-auto-ssl.\n')
-    file:write('# Place any customizations in ' .. base_dir .. '/letsencrypt/conf.d\n\n')
+    file:write('# Place any customizations in ' .. base_dir .. '/letsencrypt/conf.d/*.sh\n\n')
     file:write('CONFIG_D="' .. base_dir .. '/letsencrypt/conf.d"\n')
     file:write('LOCKFILE="' .. base_dir .. '/letsencrypt/locks/lock"\n')
     file:write('WELLKNOWN="' .. base_dir .. '/letsencrypt/.acme-challenges"\n')
@@ -91,10 +91,10 @@ local function setup_storage(auto_ssl_instance)
 
   local storage = require "resty.auto-ssl.storage"
   local storage_instance = storage.new({
-    storage_adapter = storage_adapter_instance,
+    adapter = storage_adapter_instance,
     json_adapter = json_adapter_instance,
   })
-  auto_ssl_instance:set("storage", storage_instance)
+  auto_ssl_instance.storage = storage_instance
 end
 
 return function(auto_ssl_instance)

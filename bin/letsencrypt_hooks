@@ -60,8 +60,12 @@ invalid_challenge() {
 
 request_failure() {
   local STATUSCODE="${1}" REASON="${2}" REQTYPE="${3}"
-  echo "Failure: STATUSCODESTATUSCODE} REASON=${REASON} REQTYPE=${REQTYPE}"
+  echo "Failure: STATUSCODE=${STATUSCODE} REASON=${REASON} REQTYPE=${REQTYPE}"
   exit 1
+}
+
+startup_hook() {
+  :
 }
 
 exit_hook() {
