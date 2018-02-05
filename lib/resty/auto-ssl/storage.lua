@@ -40,7 +40,7 @@ function _M.get_cert(self, domain)
 end
 
 function _M.delete_cert(self, domain)
-  return self.storage_adapter:delete(domain .. ":latest")
+  return self.adapter:delete(domain .. ":latest")
 end
 
 function _M.set_cert(self, domain, fullchain_pem, privkey_pem, cert_pem, expiry)
