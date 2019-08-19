@@ -1,3 +1,5 @@
+local shell_blocking = require "shell-games"
+
 -- This server provides an internal-only API for the dehydrated bash hook
 -- script to call. This allows for storing the tokens or certificates in the
 -- configured storage adapter (which allows for non-local storage mechanisms
@@ -44,6 +46,14 @@ return function(auto_ssl_instance)
     if err then
       ngx.log(ngx.ERR, "auto-ssl: failed to set cert: ", err)
       return ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
+    end
+    -- remove the extra copy of the certificate files in dehydrated's cert directory
+    assert(string.find(params["domain"], "/") == nil)
+    assert(string.find(params["domain"], "%.%.") == nil)
+    local dir = auto_ssl_instance:get("dir") .. "/letsencrypt/certs/" .. params["domain"]
+    local _, rm_err = shell_blocking.capture_combined({ "rm", "-rf", dir })
+    if rm_err then
+      ngx.log(ngx.ERR, "auto-ssl: failed to cleanup certs: ", rm_err)
     end
   else
     ngx.log(ngx.ERR, "auto-ssl: unknown request to hook server: ", path)

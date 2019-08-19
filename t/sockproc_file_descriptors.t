@@ -88,24 +88,50 @@ user $TEST_NGINX_NOBODY_USER $TEST_NGINX_NOBODY_GROUP;
   lua_ssl_verify_depth 5;
   location /t {
     content_by_lua_block {
-      local run_command = require "resty.auto-ssl.utils.run_command"
+      local shell_blocking = require "shell-games"
 
       local function cleanup_sockproc()
-        run_command("pkill sockproc")
-        local _, output, err = run_command("rm -f /tmp/shell.sock /tmp/auto-ssl-sockproc.pid")
+        shell_blocking.capture_combined({ "pkill", "sockproc" })
+        local _, err = shell_blocking.capture_combined({ "rm", "-f", "/tmp/shell.sock", "/tmp/auto-ssl-sockproc.pid" })
         if err then
           ngx.say("failed to remove sockproc files: ", err)
           return nil, err
         end
       end
 
-      local function print_file_descriptors(as_user)
-        local _, output, err = run_command("lsof -n -P -l -R -c sockproc -a -d '0-255' -F pnf | sed -n '1!p' | sed -e 's/ type=STREAM//g' | sed -e 's#^n/.*logs/error.log$#n/dev/null#g'")
-        if err then
+      local function print_file_descriptors(as_user, expect_no_results)
+        -- Run in bash login subshell, since when running as the "nobody" user,
+        -- there may not be a default PATH set, in which case, lsof installed
+        -- in /usr/sbin may not be picked up (but this behavior varies
+        -- depending on distro).
+        local result, err = shell_blocking.capture_combined({ "bash", "-l", "-c", "lsof -n -P -l -R -c sockproc -a -d 0-255 -F pnf" })
+        if expect_no_results == true then
+          if err and result["output"] == "" then
+            ngx.say("")
+            return
+          else
+            ngx.say("expected lsof to return nothing, but returned: ", result["output"], err)
+            return nil, err
+          end
+        elseif err then
           ngx.say("failed to run lsof: ", err)
           return nil, err
         end
-        ngx.say(output)
+
+        local lines = {}
+        for line in string.gmatch(result["output"], "[^\n]+") do
+          table.insert(lines, line)
+        end
+
+        for index, line in ipairs(lines) do
+          if index > 1 then
+            local line, _, err = ngx.re.sub(line, "\\s*type=STREAM", "")
+            local line, _, err = ngx.re.sub(line, "^n/.*logs/error.log$", "n/dev/null")
+            ngx.say(line)
+          end
+        end
+
+        ngx.say("")
       end
 
       ngx.say("already running:")
@@ -113,16 +139,16 @@ user $TEST_NGINX_NOBODY_USER $TEST_NGINX_NOBODY_GROUP;
 
       cleanup_sockproc()
       ngx.say("none running:")
-      print_file_descriptors("root")
+      print_file_descriptors("root", true)
 
       ngx.say("current dir as current user:")
       cleanup_sockproc()
-      os.execute("umask 0022 && " .. auto_ssl.lua_root .. "/bin/resty-auto-ssl/start_sockproc")
+      shell_blocking.capture_combined({ auto_ssl.lua_root .. "/bin/resty-auto-ssl/start_sockproc" }, { umask = "0022" })
       print_file_descriptors("root")
 
       ngx.say("/tmp dir as current user:")
       cleanup_sockproc()
-      os.execute("cd /tmp && umask 0022 && " .. auto_ssl.lua_root .. "/bin/resty-auto-ssl/start_sockproc")
+      shell_blocking.capture_combined({ auto_ssl.lua_root .. "/bin/resty-auto-ssl/start_sockproc" }, { umask = "0022", chdir = "/tmp" })
       print_file_descriptors("root")
 
       ngx.say("the end")

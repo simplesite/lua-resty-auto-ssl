@@ -8,7 +8,7 @@ AutoSsl::setup();
 make_path("$ENV{TEST_NGINX_RESTY_AUTO_SSL_DIR}/redis");
 my $redis = Expect->spawn("redis-server ./t/config/redis.conf") or die "failed to spawn redis-server: $!";
 $redis->log_stdout(0);
-$redis->expect(10, "now ready") or die "failed to start redis: " . $redis->exp_before();
+$redis->expect(10, "-re", "(now ready|Ready to accept)") or die "failed to start redis: " . $redis->exp_before();
 
 repeat_each(1);
 
@@ -419,8 +419,8 @@ received: foo
 latest cert: string
 --- error_log
 auto-ssl: issuing new certificate for
-dehydrated succeeded, but certs still missing from storage
 --- no_error_log
+[warn]
 [error]
 [alert]
 [emerg]
@@ -702,8 +702,8 @@ latest cert db0: userdata: NULL
 latest cert db5: string
 --- error_log
 auto-ssl: issuing new certificate for
-dehydrated succeeded, but certs still missing from storage
 --- no_error_log
+[warn]
 [error]
 [alert]
 [emerg]
